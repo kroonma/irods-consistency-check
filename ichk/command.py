@@ -6,6 +6,7 @@ import os
 import argparse
 import json
 import socket
+import ssl
 
 from getpass import getpass
 from ichk import check
@@ -69,7 +70,7 @@ def main(args):
         run(session, args)
 
 
-def setup_session():
+def setup_session(use_ssl=True):
     """Use irods environment files to configure a iRODSSession"""
 
     env_json = os.path.expanduser("~/.irods/irods_environment.json")
@@ -96,13 +97,20 @@ def setup_session():
         .format(**irods_env), file=sys.stderr
     )
 
-    session = iRODSSession(
+    ssl_settings = {}
+    if use_ssl:
+        ssl_settings["ssl_context"] = ssl._create_unverified_context(
+            purpose=ssl.Purpose.SERVER_AUTH,
+            cafile=None, 
+            capath=None, 
+            cadata=None,
+        )
+
+    return iRODSSession(
         password=password,
-        **irods_env
+        **irods_env,
+        **ssl_settings
     )
-
-    return session
-
 
 def run(session, args):
     '''Actually runs the check'''
